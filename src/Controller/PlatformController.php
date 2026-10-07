@@ -32,6 +32,7 @@ final class PlatformController
             ->unless($user->is_admin, fn (Builder $q) => $q->whereIn('id', DB::table('user_platforms')->where('user_id', $user->id)->select('platform_id')))
             ->when($keyword !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                 ->where('title', 'like', $like)
+                ->orWhere('category', 'like', $like)
                 ->orWhere('url', 'like', $like)
                 ->orWhere('account', 'like', $like)
                 ->orWhere('description', 'like', $like)))
@@ -115,6 +116,7 @@ final class PlatformController
         $data = [
             'id' => $p->id,
             'title' => $p->title,
+            'category' => $p->category,
             'url' => $p->url,
             'account' => $p->account,
             'has_password' => $p->password_encrypted !== '',
@@ -144,6 +146,10 @@ final class PlatformController
         if ($title === '' || mb_strlen($title) > 100) {
             throw new HttpError('标题不能为空，最多 100 个字');
         }
+        $category = trim((string) ($body['category'] ?? ''));
+        if (mb_strlen($category) > 50) {
+            throw new HttpError('分类最多 50 个字');
+        }
         $url = trim((string) ($body['url'] ?? ''));
         if ($url !== '' && !preg_match('#^https?://#i', $url)) {
             // 只填了域名时补上 https://，卡片点击才能正常跳转
@@ -161,7 +167,7 @@ final class PlatformController
             throw new HttpError('网站描述最多 1000 个字');
         }
 
-        return ['title' => $title, 'url' => $url, 'account' => $account, 'description' => $description];
+        return ['title' => $title, 'category' => $category, 'url' => $url, 'account' => $account, 'description' => $description];
     }
 
     private static function validPassword(mixed $password): string

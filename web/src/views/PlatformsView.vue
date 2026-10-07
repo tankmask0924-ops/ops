@@ -17,10 +17,29 @@ const revealed = reactive<Record<number, string>>({})
 
 const normalUsers = computed(() => users.value.filter((u) => !u.is_admin))
 
+const UNCATEGORIZED = '未分类'
+/** 按分类分组：分类按名称排序，未分类放最后；组内保持原顺序 */
+const groups = computed(() => {
+  const map = new Map<string, Platform[]>()
+  for (const p of platforms.value) {
+    const list = map.get(p.category) ?? []
+    list.push(p)
+    map.set(p.category, list)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'zh-CN')))
+    .map(([category, items]) => ({ key: category, name: category || UNCATEGORIZED, items }))
+})
+/** 新增 / 编辑时可选的分类；放在 load 之外单独记，搜索过滤后也不会少 */
+const categories = ref<string[]>([])
+
 async function load() {
   loading.value = true
   try {
     platforms.value = await listPlatforms(keyword.value.trim())
+    if (!keyword.value.trim()) {
+      categories.value = [...new Set(platforms.value.map((p) => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'))
+    }
   } finally {
     loading.value = false
   }
@@ -100,7 +119,7 @@ onMounted(async () => {
     <div class="toolbar">
       <el-input
         v-model="keyword"
-        placeholder="搜索标题、网址、账号、描述"
+        placeholder="搜索标题、分类、网址、账号、描述"
         clearable
         :prefix-icon="Search"
         style="width: 280px"
@@ -118,68 +137,109 @@ onMounted(async () => {
       :description="keyword ? '没有找到匹配的平台' : auth.isAdmin ? '还没有平台，点右上角「新增平台」' : '还没有给你分配平台，请联系管理员'"
     />
 
-    <div class="grid">
-      <div
-        v-for="p in platforms"
-        :key="p.id"
-        class="card"
-        :class="{ clickable: !!p.url }"
-        :title="p.url ? `打开 ${p.url}` : ''"
-        @click="open(p)"
-      >
-        <div class="card-head">
-          <div class="avatar" :style="{ background: colorOf(p.title) }">{{ p.title.slice(0, 1) }}</div>
-          <div class="head-text">
-            <div class="title">{{ p.title }}</div>
-            <div class="host">
-              <template v-if="p.url"><el-icon><Link /></el-icon>{{ hostOf(p.url) }}</template>
-              <template v-else>未填写网址</template>
+    <section v-for="g in groups" :key="g.key" class="group">
+      <div class="group-head">
+        <span class="group-name">{{ g.name }}</span>
+        <span class="group-count">{{ g.items.length }}</span>
+      </div>
+      <div class="grid">
+        <div
+          v-for="p in g.items"
+          :key="p.id"
+          class="card"
+          :class="{ clickable: !!p.url }"
+          :title="p.url ? `打开 ${p.url}` : ''"
+          @click="open(p)"
+        >
+          <div class="card-head">
+            <div class="avatar" :style="{ background: colorOf(p.title) }">{{ p.title.slice(0, 1) }}</div>
+            <div class="head-text">
+              <div class="title">{{ p.title }}</div>
+              <div class="host">
+                <template v-if="p.url"><el-icon><Link /></el-icon>{{ hostOf(p.url) }}</template>
+                <template v-else>未填写网址</template>
+              </div>
+            </div>
+            <div v-if="auth.isAdmin" @click.stop>
+              <el-dropdown trigger="click" @command="(c: 'edit' | 'delete') => onCommand(c, p)">
+                <el-button text circle :icon="MoreFilled" />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="edit" :icon="Edit">编辑</el-dropdown-item>
+                    <el-dropdown-item command="delete" :icon="Delete">删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </div>
-          <div v-if="auth.isAdmin" @click.stop>
-            <el-dropdown trigger="click" @command="(c: 'edit' | 'delete') => onCommand(c, p)">
-              <el-button text circle :icon="MoreFilled" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit" :icon="Edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="delete" :icon="Delete">删除</el-dropdown-item>
-                </el-dropdown-menu>
+
+          <div class="desc" :class="{ empty: !p.description }">{{ p.description || '暂无描述' }}</div>
+
+          <div class="cred" @click.stop>
+            <div class="row">
+              <span class="label">账号</span>
+              <span class="value mono">{{ p.account || '-' }}</span>
+              <el-button v-if="p.account" text size="small" :icon="CopyDocument" title="复制账号" @click="copyText(p.account, '账号')" />
+            </div>
+            <div class="row">
+              <span class="label">密码</span>
+              <span class="value mono">{{ !p.has_password ? '-' : p.id in revealed ? revealed[p.id] : '••••••••' }}</span>
+              <template v-if="p.has_password">
+                <el-button
+                  text
+                  size="small"
+                  :icon="p.id in revealed ? Hide : View"
+                  :title="p.id in revealed ? '隐藏' : '查看密码'"
+                  @click="togglePassword(p)"
+                />
+                <el-button text size="small" :icon="CopyDocument" title="复制密码" @click="copyPassword(p)" />
               </template>
-            </el-dropdown>
-          </div>
-        </div>
-
-        <div class="desc" :class="{ empty: !p.description }">{{ p.description || '暂无描述' }}</div>
-
-        <div class="cred" @click.stop>
-          <div class="row">
-            <span class="label">账号</span>
-            <span class="value mono">{{ p.account || '-' }}</span>
-            <el-button v-if="p.account" text size="small" :icon="CopyDocument" title="复制账号" @click="copyText(p.account, '账号')" />
-          </div>
-          <div class="row">
-            <span class="label">密码</span>
-            <span class="value mono">{{ !p.has_password ? '-' : p.id in revealed ? revealed[p.id] : '••••••••' }}</span>
-            <template v-if="p.has_password">
-              <el-button
-                text
-                size="small"
-                :icon="p.id in revealed ? Hide : View"
-                :title="p.id in revealed ? '隐藏' : '查看密码'"
-                @click="togglePassword(p)"
-              />
-              <el-button text size="small" :icon="CopyDocument" title="复制密码" @click="copyPassword(p)" />
-            </template>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <PlatformDialog v-if="auth.isAdmin" v-model="dialogVisible" :platform="editing" :users="normalUsers" @saved="onSaved" />
+    <PlatformDialog
+      v-if="auth.isAdmin"
+      v-model="dialogVisible"
+      :platform="editing"
+      :categories="categories"
+      :users="normalUsers"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <style scoped>
+.group + .group {
+  margin-top: 28px;
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 3px solid #409eff;
+  line-height: 20px;
+}
+
+.group-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.group-count {
+  padding: 0 8px;
+  border-radius: 10px;
+  background: #e4e7ed;
+  color: #606266;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

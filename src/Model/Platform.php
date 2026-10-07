@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 /**
  * @property int $id
  * @property string $title
+ * @property string $category
  * @property string $url
  * @property string $account
  * @property string $password_encrypted
@@ -21,7 +22,7 @@ class Platform extends Model
 {
     protected $table = 'platforms';
 
-    protected $fillable = ['title', 'url', 'account', 'description'];
+    protected $fillable = ['title', 'category', 'url', 'account', 'description'];
 
     protected $hidden = ['password_encrypted', 'pivot'];
 

@@ -25,6 +25,12 @@ $sql = preg_replace('/^\s*--.*$/m', '', $sql);
 foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
     $pdo->exec($statement);
 }
+// 升级：平台加分类字段
+$columns = array_column($pdo->query('SHOW COLUMNS FROM `platforms`')->fetchAll(PDO::FETCH_ASSOC), 'Field');
+if (!in_array('category', $columns, true)) {
+    $pdo->exec("ALTER TABLE `platforms` ADD `category` varchar(50) NOT NULL DEFAULT '' COMMENT '分类，空表示未分类' AFTER `title`, ADD KEY `idx_category` (`category`)");
+    echo "已升级：platforms 增加分类字段 category\n";
+}
 echo "数据表已就绪\n";
 
 if (!User::query()->exists()) {

@@ -6,6 +6,8 @@ import { createPlatform, fetchPlatformPassword, updatePlatform, type Platform, t
 /** 管理员新增 / 修改平台，同时选择哪些普通账号能看到 */
 const props = defineProps<{
   platform: Platform | null
+  /** 已有的分类，下拉选择；也可以直接输入新分类 */
+  categories: string[]
   /** 可分配的普通账号（管理员本来就能看到全部平台） */
   users: User[]
 }>()
@@ -18,6 +20,7 @@ const saving = ref(false)
 const loadingPassword = ref(false)
 const form = reactive<Required<PlatformInput>>({
   title: '',
+  category: '',
   url: '',
   account: '',
   password: '',
@@ -35,6 +38,7 @@ watch(visible, async (open) => {
   const p = props.platform
   Object.assign(form, {
     title: p?.title ?? '',
+    category: p?.category ?? '',
     url: p?.url ?? '',
     account: p?.account ?? '',
     password: '',
@@ -76,6 +80,19 @@ async function onSubmit() {
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px" @submit.prevent="onSubmit">
       <el-form-item label="标题" prop="title">
         <el-input v-model="form.title" maxlength="100" placeholder="例如：阿里云控制台" />
+      </el-form-item>
+      <el-form-item label="分类" prop="category">
+        <el-select
+          v-model="form.category"
+          filterable
+          allow-create
+          default-first-option
+          clearable
+          placeholder="选择已有分类，或直接输入新分类"
+          style="width: 100%"
+        >
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
       </el-form-item>
       <el-form-item label="网址" prop="url">
         <el-input v-model="form.url" maxlength="500" placeholder="https://..." />

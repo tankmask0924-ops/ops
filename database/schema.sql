@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `platforms` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `title` varchar(100) NOT NULL COMMENT '标题',
+  `category` varchar(50) NOT NULL DEFAULT '' COMMENT '分类，空表示未分类',
   `url` varchar(500) NOT NULL DEFAULT '' COMMENT '网址',
   `account` varchar(191) NOT NULL DEFAULT '' COMMENT '登录账号',
   `password_encrypted` text NOT NULL COMMENT '登录密码，AES-256-GCM 加密，密钥是 .env 的 PASSWORD_KEY',
@@ -27,7 +28,8 @@ CREATE TABLE IF NOT EXISTS `platforms` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_title` (`title`)
+  KEY `idx_title` (`title`),
+  KEY `idx_category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台';
 
 CREATE TABLE IF NOT EXISTS `user_platforms` (

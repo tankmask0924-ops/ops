@@ -33,6 +33,8 @@ export const changePassword = (oldPassword: string, newPassword: string) =>
 export interface Platform {
   id: number
   title: string
+  /** 空字符串表示未分类 */
+  category: string
   url: string
   account: string
   has_password: boolean
@@ -44,6 +46,7 @@ export interface Platform {
 
 export interface PlatformInput {
   title: string
+  category: string
   url: string
   account: string
   /** 修改时留空表示不改密码 */
