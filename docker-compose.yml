@@ -1,0 +1,30 @@
+# 本地开发：PHP 内置服务器 + MySQL。.env 里 DB_HOST=mysql、DB_USERNAME=ops、DB_PASSWORD=ops
+services:
+  ops:
+    container_name: ops
+    image: ops
+    build: .
+    volumes:
+      - ./:/opt/www
+    ports:
+      - 9505:9501
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  mysql:
+    container_name: ops-mysql
+    image: mysql:8.0
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=ops
+      - MYSQL_USER=ops
+      - MYSQL_PASSWORD=ops
+    volumes:
+      - ./.docker/mysql:/var/lib/mysql
+    ports:
+      - 3307:3306
+    restart: unless-stopped

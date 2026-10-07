@@ -1,0 +1,20 @@
+# 密钥、密码：只留在本地 / 服务器
+.env
+初始账号.txt
+
+# 依赖：composer install / npm install 安装
+/vendor/
+/web/node_modules/
+
+# 前端打包产物：npm run build 生成
+/public/admin/
+
+# 本地开发用的 MySQL 数据（docker-compose）
+/.docker/
+
+.DS_Store
+.idea/
+.vscode/
+
+# 前端的 .env 只有页面标题，打包需要，不含密钥
+!/web/.env
