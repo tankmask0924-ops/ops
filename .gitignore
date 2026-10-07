@@ -9,9 +9,6 @@
 # 前端打包产物：npm run build 生成
 /public/admin/
 
-# 本地开发用的 MySQL 数据（docker-compose）
-/.docker/
-
 .DS_Store
 .idea/
 .vscode/

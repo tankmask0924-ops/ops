@@ -63,8 +63,8 @@ cd web && npm ci && npm run build && cd ..
 ## 本地开发
 
 ```bash
-cp .env.example .env    # DB_HOST=mysql，DB_USERNAME=ops，DB_PASSWORD=ops，再填 JWT_SECRET / PASSWORD_KEY
-docker compose up -d    # PHP 内置服务器 :9505 + MySQL :3307
+cp .env.example .env    # DB_* 填一个现有的 MySQL（库要先建好），再填 JWT_SECRET / PASSWORD_KEY
+docker compose up -d    # PHP 内置服务器 :9505
 docker compose exec ops composer install
 docker compose exec ops php bin/install.php admin '初始密码'
 cd web && npm install && npm run dev    # http://localhost:5178/admin/ ，/admin-api 代理到 :9505
